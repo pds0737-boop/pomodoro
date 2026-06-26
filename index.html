@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Pomodoro">
+    
+    <title>Apple Style Pomodoro - Timetable Edition</title>
+    <style>
+        :root {
+            color-scheme: light dark;
+            
+            --bg-color: #f2fcf5; 
+            --card-bg: #ffffff;
+            --text-main: #1d1d1f;
+            --text-sub: #86868b;
+            
+            --green-accent: #a8e6cf; 
+            --green-hover: #88d4ab;
+            --shadow-color: rgba(0,0,0,0.04);
+            --outline-color: rgba(168, 230, 207, 0.4);
+            
+            --border-color: #e3f5eb;
+            --progress-bg: #edf8f2;
+            
+            --cal-0: #edf8f2;
+            --cal-1: #cff0df;
+            --cal-3: #a8e6cf;
+            --cal-5: #82d6b3;
+            --cal-7: #5bc295;
+            --cal-10: #38ab78;
+            
+            --modal-overlay: rgba(0, 0, 0, 0.4);
+
+            /* 과목별 색상 변수 */
+            --color-sub1: #ffb3c1; /* 재무관리 */
+            --color-sub2: #a3c4f3; /* 원가회계 */
+            --color-sub3: #f3d9a3; /* 재무회계 */
+            --color-sub4: #b3f3c4; /* 세법 */
+            --color-sub5: #d9a3f3; /* 경제학 */
+            --color-sub6: #f3a3a3; /* 경영학 */
+            --color-sub7: #a3f3e8; /* 상법 */
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #111a14; 
+                --card-bg: #1a261e;
+                --text-main: #f0f5f2;
+                --text-sub: #9ca6a0;
+                
+                --green-accent: #5bc295; 
+                --green-hover: #82d6b3;
+                --shadow-color: rgba(0,0,0,0.3);
+                --outline-color: rgba(91, 194, 149, 0.3);
+                
+                --border-color: #2a3d31;
+                --progress-bg: #213026;
+                
+                --cal-0: #213026;
+                --cal-1: #2a4a37;
+                --cal-3: #3b6e51;
+                --cal-5: #4b9169;
+                --cal-7: #5bc295;
+                --cal-10: #82d6b3;
+                
+                --modal-overlay: rgba(0, 0, 0, 0.7);
+
+                /* 다크모드 과목별 색상 (조금 더 탁하게) */
+                --color-sub1: #d65c85; 
+                --color-sub2: #4a7ab5; 
+                --color-sub3: #b5924a; 
+                --color-sub4: #4ab564; 
+                --color-sub5: #9c4ab5; 
+                --color-sub6: #b54a4a; 
+                --color-sub7: #4ab5a3; 
+            }
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+        body { background-color: var(--bg-color); color: var(--text-main); overflow-x: hidden; transition: background-color 0.3s, color 0.3s; }
+
+        .fade-in-up {
+            opacity: 0;
+            transform: translateY(40px);
+            transition: opacity 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1);
+            will-change: opacity, transform;
+        }
+        .fade-in-up.visible { opacity: 1; transform: translateY(0); }
+
+        .top-controls { position: absolute; top: 20px; right: 20px; display: flex; gap: 10px; align-items: center; z-index: 100; }
+        .volume-control-wrapper { display: flex; align-items: center; background: var(--card-bg); border-radius: 20px; box-shadow: 0 2px 8px var(--shadow-color); padding-right: 15px; height: 40px; border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+        .icon-btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 10px 15px; border-radius: 20px; cursor: pointer; font-size: 14px; color: var(--text-main); transition: all 0.3s ease; outline: none; height: 40px; box-shadow: 0 2px 8px var(--shadow-color); }
+        .icon-btn:hover { background: var(--bg-color); }
+        .volume-control-wrapper .icon-btn { box-shadow: none; border: none; background: transparent; }
+        .volume-slider { width: 70px; accent-color: var(--green-accent); cursor: pointer; }
+
+        .main-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 70px 20px 60px; position: relative; width: 100%; }
+
+        .dday-section { width: 100%; max-width: 320px; margin-bottom: 25px; text-align: center; background: var(--card-bg); padding: 15px; border-radius: 20px; box-shadow: 0 2px 8px var(--shadow-color); border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+        .dday-text { font-size: 15px; font-weight: 600; margin-bottom: 10px; color: var(--text-main); text-align: center; transition: color 0.3s; }
+        .progress-container { width: 100%; height: 8px; background-color: var(--progress-bg); border-radius: 4px; overflow: hidden; margin-bottom: 6px; transition: background-color 0.3s; }
+        .progress-fill { height: 100%; background-color: var(--green-accent); width: 0%; transition: width 0.3s ease, background-color 0.3s; }
+        .progress-label { font-size: 11px; color: var(--text-sub); display: flex; justify-content: space-between; transition: color 0.3s; }
+
+        .timer-top-bar { display: flex; justify-content: space-between; width: 100%; max-width: 320px; margin-bottom: 25px; gap: 10px; }
+        .subject-select-main { flex: 1; height: 42px; border-radius: 20px; box-shadow: 0 2px 8px var(--shadow-color); border: 1px solid var(--border-color); background-color: var(--card-bg); color: var(--text-main); padding: 0 15px; font-size: 14px; outline: none; transition: all 0.2s; }
+        .subject-select-main:focus { border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--outline-color); }
+        .custom-select { -webkit-appearance: none; appearance: none; background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%2386868b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E"); background-repeat: no-repeat; background-position: right 15px center; background-size: 12px auto; padding-right: 40px; cursor: pointer; }
+        .timer-top-bar .custom-select { background-position: right 10px center; padding-right: 30px; }
+
+        .timer-container { position: relative; width: 320px; height: 320px; margin-bottom: 35px; }
+        .timer-svg { transform: rotate(-90deg); width: 100%; height: 100%; }
+        .timer-bg { fill: none; stroke: var(--progress-bg); stroke-width: 8; transition: stroke 0.3s; }
+        .timer-progress { fill: none; stroke: var(--green-accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.2s linear, stroke 0.3s; }
+        .timer-text-container { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+        .timer-mode { font-size: 14px; font-weight: 500; color: var(--text-sub); letter-spacing: 2px; margin-bottom: 5px; text-transform: uppercase; transition: color 0.3s; }
+        .timer-time { font-size: 54px; font-weight: 200; letter-spacing: -1px; transition: color 0.3s; }
+
+        .controls { display: flex; gap: 15px; justify-content: center; margin-bottom: 30px; }
+        .btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 12px 30px; border-radius: 24px; font-size: 16px; font-weight: 500; cursor: pointer; color: var(--text-main); transition: all 0.2s ease; box-shadow: 0 2px 4px var(--shadow-color); display: flex; align-items: center; justify-content: center; }
+        .btn:hover { background: var(--bg-color); transform: translateY(-1px); }
+        .btn-primary { background: var(--green-accent); color: #1d1d1f; font-weight: 600; border: none; padding: 12px 40px; font-size: 16px; }
+        .btn-primary:hover { background: var(--green-hover); }
+        .btn-danger { background: #fdf2f2; color: #d32f2f; border: none; }
+        .btn-danger:hover { background: #fee2e2; }
+
+        @media (prefers-color-scheme: dark) {
+            .btn-primary { color: #ffffff; }
+            .btn-danger { background: #3b1c1c; color: #ff6b6b; border: 1px solid #5a2626;}
+            .btn-danger:hover { background: #4a2121; }
+        }
+
+        .stats-summary { display: flex; flex-direction: column; gap: 15px; background: var(--card-bg); padding: 20px 40px; border-radius: 20px; box-shadow: 0 4px 12px var(--shadow-color); width: 100%; max-width: 320px; border: 1px solid var(--border-color); margin-bottom: 10px; transition: background-color 0.3s, border-color 0.3s; }
+        .stat-row { display: flex; justify-content: space-around; gap: 20px; }
+        .stat-item { text-align: center; }
+        .stat-val { font-size: 24px; font-weight: 600; color: var(--text-main); transition: color 0.3s; }
+        .stat-lbl { font-size: 12px; color: var(--text-sub); margin-top: 4px; transition: color 0.3s; }
+        .subject-stats-list { list-style: none; margin-top: 10px; border-top: 1px solid var(--border-color); padding-top: 10px; font-size: 13px; transition: border-color 0.3s; }
+        .subject-stat-item { display: flex; justify-content: space-between; padding: 4px 0; color: var(--text-sub); transition: color 0.3s; }
+
+        .scroll-section { max-width: 900px; margin: 0 auto; padding: 60px 20px; border-top: 1px solid var(--border-color); transition: border-color 0.3s; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .section-title { font-size: 20px; font-weight: 600; color: var(--text-main); margin: 0; transition: color 0.3s; }
+        
+        .card { background: var(--card-bg); border-radius: 24px; padding: 30px; box-shadow: 0 4px 20px var(--shadow-color); margin-bottom: 30px; border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+        
+        /* 타임테이블 CSS 추가 및 수정 */
+        .tt-date-selector { text-align: center; margin-bottom: 15px; font-weight: 600; color: var(--text-main); }
+        .legend-container { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid var(--border-color); font-size: 12px; color: var(--text-sub); }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 4px; }
+        
+        /* 스크롤 없애고 하얀색 배경 적용 */
+        .timetable-scroll-area { 
+            border-radius: 12px; 
+            background: #ffffff; /* 하얀 배경 강제 지정 */
+            border: 1px solid var(--border-color); 
+            position: relative; 
+            padding: 10px 0;
+        }
+        @media (prefers-color-scheme: dark) {
+            .timetable-scroll-area { background: var(--card-bg); } /* 다크모드에서는 카드배경 사용 */
+        }
+
+        /* 높이를 살짝 줄여서 24시간이 화면에 잘 보이게 */
+        .tt-row { display: flex; height: 28px; border-bottom: 1px solid var(--border-color); align-items: center; }
+        .tt-row:last-child { border-bottom: none; }
+        .tt-hour { width: 45px; flex-shrink: 0; text-align: right; padding-right: 10px; font-size: 11px; font-weight: 500; color: var(--text-sub); }
+        
+        /* 10분 단위 (1/6) 세로선 추가 */
+        .tt-track { 
+            flex-grow: 1; 
+            height: 100%; 
+            position: relative; 
+            cursor: crosshair; 
+            background-color: transparent; 
+            border-left: 1px solid var(--border-color); 
+            background-image: linear-gradient(to right, transparent calc(100% - 1px), var(--border-color) calc(100% - 1px));
+            background-size: calc(100% / 6) 100%; /* 10분 간격 선 */
+        }
+        .tt-track:hover { background-color: rgba(0,0,0,0.03); }
+        @media (prefers-color-scheme: dark) { 
+            .tt-track { background-image: linear-gradient(to right, transparent calc(100% - 1px), rgba(255,255,255,0.05) calc(100% - 1px)); }
+            .tt-track:hover { background-color: rgba(255,255,255,0.05); } 
+        }
+        
+        .tt-log { position: absolute; height: 80%; top: 10%; border-radius: 4px; cursor: pointer; transition: transform 0.2s, opacity 0.2s; opacity: 0.9; display: flex; align-items: center; justify-content: center; font-size: 10px; color: #1d1d1f; overflow: hidden; white-space: nowrap; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .tt-log:hover { opacity: 1; transform: scaleY(1.1); z-index: 10; box-shadow: 0 2px 6px rgba(0,0,0,0.2); }
+        
+        /* 달력 CSS */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+        .day-label { text-align: center; font-size: 13px; font-weight: 600; color: var(--text-sub); padding-bottom: 10px; transition: color 0.3s; }
+        .cal-cell { aspect-ratio: 1; background-color: var(--cal-0); border-radius: 8px; padding: 6px; display: flex; flex-direction: column; justify-content: space-between; font-size: 12px; font-weight: 500; transition: transform 0.2s, background-color 0.3s, color 0.3s; color: var(--text-main); cursor: pointer; }
+        .cal-cell:hover { transform: scale(1.05); z-index: 1; box-shadow: 0 4px 10px var(--shadow-color); }
+        .cal-cell .cal-time { font-size: 10px; opacity: 0.8; text-align: right; }
+        .cal-cell.selected { border: 2px solid var(--green-accent); }
+
+        .scroll-indicator { position: absolute; bottom: 20px; font-size: 12px; color: var(--text-sub); animation: bounce 2s infinite; cursor: pointer; transition: color 0.3s; }
+        @keyframes bounce { 0%, 20%, 50%, 80%, 100% { transform: translateY(0); } 40% { transform: translateY(-8px); } 60% { transform: translateY(-4px); } }
+
+        /* 모달 공통 */
+        .settingsModal, .modal-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--modal-overlay); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); display: none; justify-content: center; align-items: center; z-index: 999; opacity: 0; transition: opacity 0.3s ease; }
+        .modal-overlay.show { display: flex; opacity: 1; }
+        .modal-content { background: var(--card-bg); width: 90%; max-width: 600px; max-height: 85vh; border-radius: 24px; padding: 30px; overflow-y: auto; position: relative; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border: 1px solid var(--border-color); transform: translateY(20px); transition: transform 0.3s ease, background-color 0.3s, border-color 0.3s; }
+        .modal-overlay.show .modal-content { transform: translateY(0); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px; transition: border-color 0.3s;}
+        .modal-header h2 { font-size: 22px; margin: 0; color: var(--text-main); transition: color 0.3s; }
+        .close-modal-btn { background: var(--bg-color); border: 1px solid var(--border-color); border-radius: 50%; width: 36px; height: 36px; font-size: 16px; cursor: pointer; color: var(--text-main); display: flex; align-items: center; justify-content: center; transition: background 0.2s, color 0.3s, border-color 0.3s;}
+        .close-modal-btn:hover { background: var(--border-color); }
+
+        .setting-grid { display: flex; flex-direction: column; gap: 25px; }
+        .setting-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 15px; align-items: flex-end; }
+        .form-group { display: flex; flex-direction: column; gap: 8px; }
+        .form-group label { font-size: 13px; font-weight: 500; color: var(--text-sub); transition: color 0.3s; }
+
+        /* 아이패드/모바일 반응형 */
+        @media (max-width: 768px) {
+            .setting-row { grid-template-columns: 1fr; }
+            .setting-row .btn { width: 100%; }
+            .setting-row.time-row { grid-template-columns: 1fr 1fr; }
+        }
+        
+        .form-group input, .form-group select { width: 100%; height: 46px; padding: 0 15px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; background-color: var(--bg-color); color: var(--text-main); outline: none; transition: all 0.2s ease; box-sizing: border-box; }
+        .form-group input:focus, .form-group select:focus { background-color: var(--card-bg); border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--outline-color); }
+
+        input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { cursor: pointer; opacity: 0.5; transition: all 0.2s ease; border-radius: 6px; padding: 5px; }
+        input[type="date"]::-webkit-calendar-picker-indicator:hover, input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; transform: scale(1.1); }
+        @media (prefers-color-scheme: dark) { input[type="date"]::-webkit-calendar-picker-indicator, input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.7; } input[type="date"]::-webkit-calendar-picker-indicator:hover, input[type="time"]::-webkit-calendar-picker-indicator:hover { opacity: 1; } }
+
+        .weekday-selector { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+        .weekday-selector label { display: inline-block; }
+        .weekday-selector input[type="checkbox"] { display: none; }
+        .weekday-selector span { display: flex; align-items: center; justify-content: center; height: 46px; padding: 0 16px; background-color: var(--bg-color); border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; font-weight: 500; color: var(--text-main); cursor: pointer; transition: all 0.2s ease; user-select: none; }
+        .weekday-selector input[type="checkbox"]:checked + span { background-color: var(--green-accent); color: #1d1d1f; border-color: var(--green-accent); font-weight: 600; box-shadow: 0 4px 10px var(--outline-color); }
+        @media (prefers-color-scheme: dark) { .weekday-selector input[type="checkbox"]:checked + span { color: #ffffff; } }
+
+        .res-list { list-style: none; display: flex; flex-direction: column; gap: 10px; margin-top: 15px; }
+        .res-item { display: flex; justify-content: space-between; align-items: center; padding: 15px 20px; background: var(--bg-color); border-radius: 12px; font-size: 14px; border: 1px solid var(--border-color); transition: background-color 0.3s, border-color 0.3s; }
+        .res-del-btn { background: none; border: none; color: #ff3b30; cursor: pointer; font-size: 13px; font-weight: 600; }
+        
+        .modal-section { margin-bottom: 35px; }
+        .modal-section-title { font-size: 16px; font-weight: 600; color: var(--text-main); margin-bottom: 15px; transition: color 0.3s;}
+    </style>
+</head>
+<body>
+
+    <main class="main-screen">
+        <div class="top-controls">
+            <div class="volume-control-wrapper">
+                <button class="icon-btn" id="soundToggle">🔊</button>
+                <input type="range" id="volumeSlider" class="volume-slider" min="0" max="1" step="0.1" value="1.0">
+            </div>
+            <button class="icon-btn" id="settingsBtn">⚙️ 설정</button>
+        </div>
+
+        <div class="dday-section fade-in-up">
+            <div class="dday-text" id="ddayDisplay">⏳ 목표 D-Day 계산 중...</div>
+            <div class="progress-container">
+                <div class="progress-fill" id="dailyProgressFill"></div>
+            </div>
+            <div class="progress-label">
+                <span>오늘 목표 (10시간)</span>
+                <span id="dailyProgressText">0%</span>
+            </div>
+        </div>
+
+        <div class="timer-top-bar fade-in-up">
+            <select id="subjectSelect" class="subject-select-main custom-select">
+                <option value="재무관리">재무관리</option>
+                <option value="원가회계">원가회계</option>
+                <option value="재무회계">재무회계</option>
+                <option value="세법">세법</option>
+                <option value="경제학">경제학</option>
+                <option value="경영학">경영학</option>
+                <option value="상법">상법</option>
+            </select>
+            <button class="icon-btn" id="modeToggle" style="height: 42px; border-radius: 12px; margin-left: 10px;">🔄 휴식 전환</button>
+        </div>
+
+        <div class="timer-container fade-in-up">
+            <svg class="timer-svg" viewBox="0 0 200 200">
+                <circle class="timer-bg" cx="100" cy="100" r="90"/>
+                <circle class="timer-progress" id="progressCircle" cx="100" cy="100" r="90"/>
+            </svg>
+            <div class="timer-text-container">
+                <div class="timer-mode" id="timerModeText">FOCUS</div>
+                <div class="timer-time" id="timerTimeText">25:00</div>
+            </div>
+        </div>
+
+        <div class="controls fade-in-up">
+            <button class="btn btn-primary" id="startBtn">시작</button>
+            <button class="btn" id="pauseBtn" style="display:none;">중지</button>
+            <button class="btn" id="resetBtn">초기화</button>
+        </div>
+
+        <div class="stats-summary fade-in-up">
+            <div class="stat-row">
+                <div class="stat-item">
+                    <div class="stat-val" id="todaySessions">0</div>
+                    <div class="stat-lbl">완료 세션</div>
+                </div>
+                <div style="width: 1px; background: var(--border-color);"></div>
+                <div class="stat-item">
+                    <div class="stat-val" id="todayTotalTime">0m</div>
+                    <div class="stat-lbl">누적 공부 시간</div>
+                </div>
+            </div>
+            <ul class="subject-stats-list" id="subjectStatsList"></ul>
+        </div>
+
+        <div class="scroll-indicator fade-in-up" onclick="window.scrollTo({top: window.innerHeight, behavior: 'smooth'});">
+            아래로 스크롤하여 타임테이블 보기 ↓
+        </div>
+    </main>
+
+    <section class="scroll-section">
+        <div class="card fade-in-up">
+            <div class="section-header" style="flex-direction: column; align-items: flex-start; gap: 10px;">
+                <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                    <h2 class="section-title">일간 타임테이블</h2>
+                    <div class="tt-date-selector" id="ttDateDisplay">오늘</div>
+                </div>
+                <div class="legend-container" id="subjectLegend">
+                    </div>
+            </div>
+            
+            <div class="timetable-scroll-area" id="timetableScrollArea">
+                <div id="timetableGrid">
+                    </div>
+            </div>
+        </div>
+
+        <div class="card fade-in-up">
+            <div class="section-header">
+                <h2 class="section-title" id="calendarTitle">2026년</h2>
+                <div>
+                    <button class="icon-btn" id="prevMonth" style="padding: 5px 10px; height:32px;">◀</button>
+                    <button class="icon-btn" id="nextMonth" style="padding: 5px 10px; height:32px;">▶</button>
+                </div>
+            </div>
+            <div class="calendar-grid" id="calendarGrid"></div>
+        </div>
+    </section>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>환경 설정</h2>
+                <button class="close-modal-btn" id="closeSettingsBtn">✕</button>
+            </div>
+
+            <div class="modal-section">
+                <h3 class="modal-section-title">타이머 기본 시간</h3>
+                <div class="setting-row">
+                    <div class="form-group">
+                        <label>공부 시간 (분)</label>
+                        <input type="number" id="focusInput" value="25" min="1" max="180">
+                    </div>
+                    <div class="form-group">
+                        <label>휴식 시간 (분)</label>
+                        <input type="number" id="breakInput" value="5" min="1" max="60">
+                    </div>
+                    <div class="form-group" style="min-width: 80px;">
+                        <button class="btn btn-primary" id="applyTimeBtn" style="height: 46px; border-radius: 12px; padding:0;">적용</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section">
+                <h3 class="modal-section-title">디데이 설정</h3>
+                <div class="setting-row">
+                    <div class="form-group" style="flex: 2;">
+                        <label>디데이 문구</label>
+                        <input type="text" id="ddayTextInput" value="🔥 7월 연습서 개강">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>목표 날짜</label>
+                        <input type="date" id="ddayDateInput" value="2026-07-01">
+                    </div>
+                    <div class="form-group" style="min-width: 80px;">
+                        <button class="btn btn-primary" id="saveDdayBtn" style="height: 46px; border-radius: 12px; padding:0;">저장</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-section" style="margin-bottom: 0;">
+                <div class="section-header" style="margin-bottom: 15px;">
+                    <h3 class="modal-section-title" style="margin:0;">스마트 예약</h3>
+                    <button class="icon-btn" id="toggleResListBtn" style="height: 28px; padding: 2px 10px; font-size:12px;">목록 숨기기 ▴</button>
+                </div>
+                <div class="setting-grid">
+                    <div class="form-group">
+                        <label>요일 선택</label>
+                        <div class="weekday-selector" id="dayCheckboxGroup">
+                            <label><input type="checkbox" value="1"><span>월</span></label>
+                            <label><input type="checkbox" value="2"><span>화</span></label>
+                            <label><input type="checkbox" value="3"><span>수</span></label>
+                            <label><input type="checkbox" value="4"><span>목</span></label>
+                            <label><input type="checkbox" value="5"><span>금</span></label>
+                            <label><input type="checkbox" value="6"><span>토</span></label>
+                            <label><input type="checkbox" value="0"><span>일</span></label>
+                        </div>
+                    </div>
+                    <div class="setting-row time-row">
+                        <div class="form-group">
+                            <label>시작 시간</label>
+                            <input type="time" id="resTime" value="09:00">
+                        </div>
+                        <div class="form-group">
+                            <label>진행 (분)</label>
+                            <input type="number" id="resDuration" value="25" min="1" max="180">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" id="addResBtn" style="height: 46px; border-radius: 12px; padding:0;">추가</button>
+                        </div>
+                    </div>
+                </div>
+                <ul class="res-list" id="resList"></ul>
+            </div>
+        </div>
+    </div>
+
+    <div id="logEditModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 400px;">
+            <div class="modal-header">
+                <h2 id="logModalTitle">공부 기록 관리</h2>
+                <button class="close-modal-btn" id="closeLogModalBtn">✕</button>
+            </div>
+            
+            <div class="setting-grid">
+                <input type="hidden" id="logEditId">
+                <input type="hidden" id="logEditDate">
+                
+                <div class="form-group">
+                    <label>과목</label>
+                    <select id="logSubjectSelect" class="custom-select">
+                        <option value="재무관리">재무관리</option>
+                        <option value="원가회계">원가회계</option>
+                        <option value="재무회계">재무회계</option>
+                        <option value="세법">세법</option>
+                        <option value="경제학">경제학</option>
+                        <option value="경영학">경영학</option>
+                        <option value="상법">상법</option>
+                    </select>
+                </div>
+                
+                <div class="setting-row time-row">
+                    </div>
+                    <div class="form-group">
+                        <label>종료 시간</label>
+                        <input type="time" id="logEndTime">
+                    </div>
+                </div>
+                
+                <div class="setting-row" style="margin-top: 10px;">
+                    <button class="btn btn-primary" id="saveLogBtn" style="width: 100%;">저장</button>
+                    <button class="btn btn-danger" id="deleteLogBtn" style="width: 100%; display: none;">삭제</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const observerOptions = { root: null, rootMargin: '0px', threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('visible');
+                } else {
+                    entry.target.classList.remove('visible');
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.fade-in-up').forEach((el, index) => {
+            if(el.closest('.main-screen')) el.style.transitionDelay = `${index * 0.1}s`;
+            observer.observe(el);
+        });
+
+        // =====================================
+        // 1. 웹 알림(Notification) 권한 강제 요청 함수
+        // =====================================
+        function showNotification(title, body) {
+            // Electron 환경이면 IPC로 시스템 알림, 아니면 웹 Notification API 사용
+            if (window.electronAPI) {
+                window.electronAPI.showNotification(title, body);
+            } else if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body: body });
+            }
+        }
+
+        // =====================================
+        // 2. Web Audio API 기반 애플 스타일 사운드
+        // =====================================
+        let audioCtx = null;
+
+        function getAudioContext() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            return audioCtx;
+        }
+
+        // 애플 스타일 "또롱" 시작음: 맑고 부드러운 단음 2회
+        function playStartSound(volume) {
+            const ctx = getAudioContext();
+            const vol = volume !== undefined ? volume : appData.volume;
+
+            function playTone(startTime, freq, dur) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(vol * 0.45, startTime + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+                osc.start(startTime);
+                osc.stop(startTime + dur);
+            }
+
+            const now = ctx.currentTime;
+            playTone(now,        1046.5, 0.25); // C6
+            playTone(now + 0.18, 1318.5, 0.30); // E6
+        }
+
+        // 애플 스타일 "또롱" 종료음: 3음 하강 차임벨
+        function playEndSound(volume) {
+            const ctx = getAudioContext();
+            const vol = volume !== undefined ? volume : appData.volume;
+
+            function playChime(startTime, freq, dur) {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(freq, startTime);
+                gain.gain.setValueAtTime(0, startTime);
+                gain.gain.linearRampToValueAtTime(vol * 0.5, startTime + 0.015);
+                gain.gain.exponentialRampToValueAtTime(0.0001, startTime + dur);
+                osc.start(startTime);
+                osc.stop(startTime + dur);
+            }
+
+            const now = ctx.currentTime;
+            playChime(now,        1318.5, 0.45); // E6
+            playChime(now + 0.22, 1046.5, 0.45); // C6
+            playChime(now + 0.44, 783.99, 0.60); // G5
+        }
+
+        // 더미 오디오 객체 (볼륨 슬라이더 호환용 — 실제 재생은 Web Audio로 처리)
+        const startAudio = { volume: 1.0, currentTime: 0, play: () => Promise.resolve(), pause: () => {} };
+        const endAudio   = { volume: 1.0, currentTime: 0, play: () => Promise.resolve(), pause: () => {} };
+
+        // Base64로 인코딩된 초단기 무음 WAV 파일
+        const silentAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA');
+        silentAudio.loop = true; // 무한 반복
+        
+        let isAudioUnlocked = false;
+
+        function unlockAudioOnFirstClick() {
+            if (isAudioUnlocked) return;
+            // Web Audio Context 초기화 (사용자 제스처 필요)
+            getAudioContext().resume().catch(() => {});
+            
+            // 맥OS 브라우저 정책 우회: 사용자가 클릭하는 시점에 알림 권한을 요청해야 브라우저가 차단하지 않음
+            if ("Notification" in window && Notification.permission !== "granted") {
+                Notification.requestPermission();
+            }
+
+            isAudioUnlocked = true;
+            document.body.removeEventListener('click', unlockAudioOnFirstClick);
+            document.body.removeEventListener('touchstart', unlockAudioOnFirstClick);
+        }
+
+        document.body.addEventListener('click', unlockAudioOnFirstClick);
+        document.body.addEventListener('touchstart', unlockAudioOnFirstClick);
+
+        let isSoundOn = true;
+        let lastTriggeredTime = ""; 
+        let selectedCalendarDate = getLogicalDate(); 
+
+        const subjectColorMap = {
+            '재무관리': 'var(--color-sub1)',
+            '원가회계': 'var(--color-sub2)',
+            '재무회계': 'var(--color-sub3)',
+            '세법': 'var(--color-sub4)',
+            '경제학': 'var(--color-sub5)',
+            '경영학': 'var(--color-sub6)',
+            '상법': 'var(--color-sub7)'
+        };
+
+        let appData = {
+            lastResetDate: '', todaySessions: 0, todayTotalSeconds: 0,
+            customFocusMin: 25, customBreakMin: 5,   
+            history: {}, subjectStats: {}, reservations: [],
+            timeLogs: [], 
+            ddayText: "🔥 7월 연습서 개강", ddayDate: "2026-07-01", volume: 1.0 
+        };
+
+        if (localStorage.getItem('applePomodoroData')) {
+            const parsed = JSON.parse(localStorage.getItem('applePomodoroData'));
+            appData = { ...appData, ...parsed };
+            if (!appData.subjectStats) appData.subjectStats = {};
+            if (!appData.reservations) appData.reservations = [];
+            if (!appData.timeLogs) appData.timeLogs = [];
+            if (appData.volume === undefined) appData.volume = 1.0;
+        }
+
+        // =====================================
+        // 과목 실시간 변경 감지 로직
+        // =====================================
+        let currentSubject = document.getElementById('subjectSelect').value;
+
+        document.getElementById('subjectSelect').addEventListener('change', (e) => {
+            const newSubject = e.target.value;
+            if (timerState.isPlaying && timerState.isFocusMode && timerState.sessionStartTimeStamp) {
+                const now = Date.now();
+                if (now - timerState.sessionStartTimeStamp > 60000) {
+                    addTimeLogAuto(new Date(timerState.sessionStartTimeStamp), new Date(now), currentSubject);
+                    timerState.sessionStartTimeStamp = now;
+                    saveRunningState();
+                }
+            }
+            currentSubject = newSubject;
+        });
+
+        // =====================================
+        // 날짜/시간 유틸리티 함수
+        // =====================================
+        function getLogicalDate(dateObj = new Date()) {
+            const d = new Date(dateObj);
+            if (d.getHours() < 5) d.setDate(d.getDate() - 1); 
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function formatHHMM(dateObj) {
+            return `${String(dateObj.getHours()).padStart(2,'0')}:${String(dateObj.getMinutes()).padStart(2,'0')}`;
+        }
+
+        function getMinutesFromHHMM(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            return h * 60 + m;
+        }
+
+        function getLogicalMinutes(hhmm) {
+            const [h, m] = hhmm.split(':').map(Number);
+            const logicalH = h >= 5 ? h - 5 : h + 19;
+            return logicalH * 60 + m;
+        }
+
+        // =====================================
+        // 타임테이블 & 기록 관리 핵심 로직
+        // =====================================
+        const legendContainer = document.getElementById('subjectLegend');
+        for (const [sub, col] of Object.entries(subjectColorMap)) {
+            const item = document.createElement('div'); item.className = 'legend-item';
+            item.innerHTML = `<div class="legend-color" style="background:${col}"></div><span>${sub}</span>`;
+            legendContainer.appendChild(item);
+        }
+
+        function recalculateStatsFromLogs() {
+            appData.todayTotalSeconds = 0;
+            appData.subjectStats = {};
+            appData.history = {};
+
+            appData.timeLogs.forEach(log => {
+                const startM = getLogicalMinutes(log.startTime);
+                let endM = getLogicalMinutes(log.endTime);
+                if (endM < startM) endM += 1440; 
+
+                const durationSec = (endM - startM) * 60;
+                
+                appData.history[log.date] = (appData.history[log.date] || 0) + durationSec;
+
+                if (log.date === getLogicalDate()) {
+                    appData.todayTotalSeconds += durationSec;
+                    appData.subjectStats[log.subject] = (appData.subjectStats[log.subject] || 0) + durationSec;
+                }
+            });
+        }
+
+        function addTimeLogAuto(startDateObj, endDateObj, subject) {
+            if (startDateObj >= endDateObj) return; 
+            
+            const logDate = getLogicalDate(startDateObj);
+            const newLog = {
+                id: Date.now(),
+                date: logDate,
+                startTime: formatHHMM(startDateObj),
+                endTime: formatHHMM(endDateObj),
+                subject: subject
+            };
+            
+            appData.timeLogs.push(newLog);
+            saveDataAndSync();
+        }
+
+        function saveDataAndSync() {
+            recalculateStatsFromLogs();
+            localStorage.setItem('applePomodoroData', JSON.stringify(appData));
+            updateDashboard();
+            renderCalendar();
+            renderTimetable(selectedCalendarDate);
+        }
+
+        function renderTimetable(targetDate) {
+            selectedCalendarDate = targetDate;
+            document.getElementById('ttDateDisplay').textContent = (targetDate === getLogicalDate()) ? "오늘" : targetDate;
+            
+            const grid = document.getElementById('timetableGrid');
+            grid.innerHTML = '';
+            
+            const dayLogs = appData.timeLogs.filter(l => l.date === targetDate);
+
+            for(let logicalH = 0; logicalH < 24; logicalH++) {
+                const actualHour = (logicalH + 5) % 24; 
+                
+                const row = document.createElement('div');
+                row.className = 'tt-row';
+                
+                const hourLabel = document.createElement('div');
+                hourLabel.className = 'tt-hour';
+                hourLabel.textContent = `${actualHour}시`;
+                
+                const track = document.createElement('div');
+                track.className = 'tt-track';
+                track.onclick = (e) => {
+                    if (e.target !== track) return;
+                    const rect = track.getBoundingClientRect();
+                    const clickX = e.clientX - rect.left;
+                    const min = Math.floor((clickX / rect.width) * 60);
+                    const clickedTime = `${String(actualHour).padStart(2,'0')}:${String(min).padStart(2,'0')}`;
+                    openLogModal(null, clickedTime, targetDate);
+                };
+
+                dayLogs.forEach(log => {
+                    const sMinTotal = getLogicalMinutes(log.startTime);
+                    let eMinTotal = getLogicalMinutes(log.endTime);
+                    if (eMinTotal <= sMinTotal) eMinTotal += 1440;
+
+                    const trackStartM = logicalH * 60;
+                    const trackEndM = (logicalH + 1) * 60;
+
+                    if (sMinTotal < trackEndM && eMinTotal > trackStartM) {
+                        const drawStart = Math.max(sMinTotal, trackStartM) - trackStartM;
+                        const drawEnd = Math.min(eMinTotal, trackEndM) - trackStartM;
+                        
+                        const leftPercent = (drawStart / 60) * 100;
+                        const widthPercent = ((drawEnd - drawStart) / 60) * 100;
+
+                        const block = document.createElement('div');
+                        block.className = 'tt-log';
+                        block.style.left = `${leftPercent}%`;
+                        block.style.width = `${widthPercent}%`;
+                        block.style.backgroundColor = subjectColorMap[log.subject] || '#999';
+                        
+                        block.onclick = (e) => { e.stopPropagation(); openLogModal(log); };
+                        
+                        track.appendChild(block);
+                    }
+                });
+
+                row.appendChild(hourLabel);
+                row.appendChild(track);
+                grid.appendChild(row);
+            }
+        }
+
+        // =====================================
+        // 모달 관리 (설정 & 기록 수정)
+        // =====================================
+        const settingsBtn = document.getElementById('settingsBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        settingsBtn.addEventListener('click', () => { settingsModal.classList.add('show'); document.body.style.overflow = 'hidden'; });
+        document.getElementById('closeSettingsBtn').addEventListener('click', () => { settingsModal.classList.remove('show'); document.body.style.overflow = ''; });
+        
+        const logEditModal = document.getElementById('logEditModal');
+        document.getElementById('closeLogModalBtn').addEventListener('click', () => { logEditModal.classList.remove('show'); });
+
+        window.addEventListener('click', (e) => { 
+            if (e.target === settingsModal) { settingsModal.classList.remove('show'); document.body.style.overflow = ''; } 
+            if (e.target === logEditModal) { logEditModal.classList.remove('show'); } 
+        });
+
+        document.getElementById('focusInput').value = appData.customFocusMin;
+        document.getElementById('breakInput').value = appData.customBreakMin;
+        document.getElementById('volumeSlider').value = appData.volume;
+        document.getElementById('ddayTextInput').value = appData.ddayText;
+        document.getElementById('ddayDateInput').value = appData.ddayDate;
+
+        function openLogModal(log = null, defaultStartTime = "09:00", tDate = getLogicalDate()) {
+            logEditModal.classList.add('show');
+            
+            if (log) {
+                document.getElementById('logModalTitle').textContent = "기록 수정";
+                document.getElementById('logEditId').value = log.id;
+                document.getElementById('logEditDate').value = log.date;
+                document.getElementById('logSubjectSelect').value = log.subject;
+                document.getElementById('logStartTime').value = log.startTime;
+                document.getElementById('logEndTime').value = log.endTime;
+                document.getElementById('deleteLogBtn').style.display = 'block';
+            } else {
+                document.getElementById('logModalTitle').textContent = "새 기록 추가";
+                document.getElementById('logEditId').value = "";
+                document.getElementById('logEditDate').value = tDate;
+                document.getElementById('logSubjectSelect').value = document.getElementById('subjectSelect').value;
+                document.getElementById('logStartTime').value = defaultStartTime;
+                
+                const sMin = getMinutesFromHHMM(defaultStartTime);
+                const eMin = sMin + 30;
+                document.getElementById('logEndTime').value = `${String(Math.floor((eMin%1440)/60)).padStart(2,'0')}:${String(eMin%60).padStart(2,'0')}`;
+                
+                document.getElementById('deleteLogBtn').style.display = 'none';
+            }
+        }
+
+        document.getElementById('saveLogBtn').addEventListener('click', () => {
+            const id = document.getElementById('logEditId').value;
+            const date = document.getElementById('logEditDate').value;
+            const subject = document.getElementById('logSubjectSelect').value;
+            const start = document.getElementById('logStartTime').value;
+            const end = document.getElementById('logEndTime').value;
+
+            if (id) {
+                const idx = appData.timeLogs.findIndex(l => l.id == id);
+                if (idx > -1) {
+                    appData.timeLogs[idx] = { ...appData.timeLogs[idx], subject, startTime: start, endTime: end };
+                }
+            } else {
+                appData.timeLogs.push({ id: Date.now(), date, startTime: start, endTime: end, subject });
+            }
+            
+            saveDataAndSync();
+            logEditModal.classList.remove('show');
+        });
+
+        document.getElementById('deleteLogBtn').addEventListener('click', () => {
+            const id = document.getElementById('logEditId').value;
+            if (confirm("정말 이 기록을 삭제하시겠습니까?")) {
+                appData.timeLogs = appData.timeLogs.filter(l => l.id != id);
+                saveDataAndSync();
+                logEditModal.classList.remove('show');
+            }
+        });
+
+        // =====================================
+        // 타이머 및 워커 로직
+        // =====================================
+        const workerBlob = new Blob([`
+            let interval;
+            self.onmessage = function(e) {
+                if(e.data === 'start') { interval = setInterval(() => self.postMessage('tick'), 200); } 
+                else if(e.data === 'stop') { clearInterval(interval); }
+            }
+        `], {type: 'application/javascript'});
+        const timerWorker = new Worker(URL.createObjectURL(workerBlob));
+
+        let timerState = { 
+            isFocusMode: true, 
+            isPlaying: false, 
+            duration: appData.customFocusMin * 60, 
+            timeLeft: appData.customFocusMin * 60, 
+            targetTime: null,
+            sessionStartTimeStamp: null 
+        };
+
+        const circle = document.getElementById('progressCircle');
+        const radius = circle.r.baseVal.value;
+        const circumference = radius * 2 * Math.PI;
+        circle.style.strokeDasharray = `${circumference} ${circumference}`;
+
+        async function playBeep(type) {
+            if (!isSoundOn) return;
+            try {
+                if (type === 'start') {
+                    playStartSound(appData.volume);
+                } else if (type === 'end') {
+                    playEndSound(appData.volume);
+                }
+            } catch (error) {
+                console.error("오디오 재생 실패:", error);
+            }
+        }
+
+        function setProgress(percent) { circle.style.strokeDashoffset = circumference - (percent / 100) * circumference; }
+
+        function checkDailyReset() {
+            const logicalToday = getLogicalDate();
+            if (appData.lastResetDate !== logicalToday) {
+                appData.todaySessions = 0; appData.todayTotalSeconds = 0; 
+                appData.lastResetDate = logicalToday; saveDataAndSync(); 
+            }
+            updateDday();
+        }
+
+        function updateDday() {
+            const now = new Date(); const targetDateObj = new Date(appData.ddayDate + "T00:00:00");
+            now.setHours(0,0,0,0); targetDateObj.setHours(0,0,0,0);
+            const diffDays = Math.round((targetDateObj - now) / (1000 * 60 * 60 * 24)); 
+            let ddayStr = diffDays > 0 ? `D-${diffDays}` : (diffDays === 0 ? `D-Day` : `D+${Math.abs(diffDays)}`);
+            document.getElementById('ddayDisplay').textContent = `${appData.ddayText} ${ddayStr}`;
+            let percent = Math.min(100, (appData.todayTotalSeconds / 36000) * 100);
+            document.getElementById('dailyProgressFill').style.width = `${percent}%`;
+            document.getElementById('dailyProgressText').textContent = `${percent.toFixed(1)}%`;
+        }
+
+        function updateTimerUI() {
+            const m = Math.floor(timerState.timeLeft / 60); const s = timerState.timeLeft % 60;
+            document.getElementById('timerTimeText').textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+            setProgress((timerState.timeLeft / timerState.duration) * 100);
+            document.getElementById('timerModeText').textContent = timerState.isFocusMode ? "FOCUS" : "BREAK";
+            document.getElementById('timerModeText').style.color = timerState.isFocusMode ? "var(--text-sub)" : "var(--green-accent)";
+        }
+
+        function renderSubjectStats() {
+            const listEl = document.getElementById('subjectStatsList'); listEl.innerHTML = '';
+            for (const [subject, seconds] of Object.entries(appData.subjectStats)) {
+                if (seconds > 0) {
+                    const li = document.createElement('li'); li.className = 'subject-stat-item';
+                    li.innerHTML = `<span style="display:flex; align-items:center; gap:5px;"><div style="width:10px;height:10px;border-radius:2px;background:${subjectColorMap[subject]}"></div>${subject}</span> <strong>${Math.floor(seconds / 60)}m</strong>`;
+                    listEl.appendChild(li);
+                }
+            }
+        }
+
+        function updateDashboard() {
+            document.getElementById('todaySessions').textContent = appData.todaySessions;
+            const h = Math.floor(appData.todayTotalSeconds / 3600); const m = Math.floor((appData.todayTotalSeconds % 3600) / 60);
+            document.getElementById('todayTotalTime').textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+            renderSubjectStats(); updateDday();
+        }
+
+        function checkReservation() {
+            const now = new Date(); const currentHHMM = formatHHMM(now);
+            if (lastTriggeredTime === currentHHMM) return;
+            if (!timerState.isPlaying) {
+                const match = appData.reservations.find(r => parseInt(r.day) === now.getDay() && r.time === currentHHMM);
+                if (match) { lastTriggeredTime = currentHHMM; timerState.isFocusMode = true; timerState.duration = parseInt(match.duration) * 60; timerState.timeLeft = timerState.duration; updateTimerUI(); startTimer(); }
+            }
+        }
+        setInterval(checkReservation, 1000); 
+
+        timerWorker.onmessage = () => { if (!timerState.isPlaying) return; calculateTime(); };
+
+        function calculateTime() {
+            const now = Date.now();
+            if (now >= timerState.targetTime) {
+                timerState.timeLeft = 0;
+                updateTimerUI();
+                timerWorker.postMessage('stop');
+                endSession();
+            } else {
+                const currentLeft = Math.ceil((timerState.targetTime - now) / 1000);
+                if (timerState.timeLeft !== currentLeft) {
+                    timerState.timeLeft = currentLeft;
+                    updateTimerUI();
+                    saveRunningState();
+                }
+            }
+        }
+
+        function startTimer() {
+            if (timerState.isPlaying) return;
+            checkDailyReset(); 
+            
+            // OS 앱 낮잠(App Nap) 방지용 무음 루프 오디오 실행
+            silentAudio.play().catch(e => console.log("무음 오디오 재생 거부:", e));
+
+            playBeep('start');
+            timerState.isPlaying = true;
+            timerState.targetTime = Date.now() + (timerState.timeLeft * 1000);
+            
+            currentSubject = document.getElementById('subjectSelect').value;
+            if (timerState.isFocusMode) {
+                timerState.sessionStartTimeStamp = Date.now();
+            }
+            
+            document.getElementById('startBtn').style.display = 'none'; 
+            document.getElementById('pauseBtn').style.display = 'inline-block'; 
+            timerWorker.postMessage('start');
+            saveRunningState();
+        }
+
+        function pauseTimer() {
+            if (!timerState.isPlaying) return;
+            timerState.isPlaying = false; 
+            timerWorker.postMessage('stop');
+            
+            // 무음 루프 오디오 정지 (자원 절약)
+            silentAudio.pause();
+            
+            document.getElementById('startBtn').style.display = 'inline-block'; 
+            document.getElementById('pauseBtn').style.display = 'none';
+            
+            const now = Date.now();
+            let currentLeft = Math.ceil((timerState.targetTime - now) / 1000);
+            if (currentLeft < 0) currentLeft = 0;
+            
+            if (timerState.isFocusMode && timerState.sessionStartTimeStamp) {
+                const sub = document.getElementById('subjectSelect').value;
+                if (now - timerState.sessionStartTimeStamp > 60000) {
+                    addTimeLogAuto(new Date(timerState.sessionStartTimeStamp), new Date(now), sub);
+                }
+                timerState.sessionStartTimeStamp = null; 
+            }
+            
+            timerState.timeLeft = currentLeft;
+            timerState.targetTime = null;
+            updateTimerUI();
+            saveRunningState();
+        }
+
+        function resetTimer() {
+            if (timerState.isPlaying) pauseTimer(); 
+            
+            timerState.timeLeft = (timerState.isFocusMode ? appData.customFocusMin : appData.customBreakMin) * 60;
+            timerState.duration = timerState.timeLeft;
+            timerState.targetTime = null;
+            timerState.sessionStartTimeStamp = null;
+            
+            document.getElementById('startBtn').style.display = 'inline-block'; 
+            document.getElementById('pauseBtn').style.display = 'none';
+            
+            updateTimerUI();
+            saveRunningState();
+        }
+
+        function endSession() {
+            timerState.isPlaying = false; 
+            
+            // 종료 시스템 알림 (시각적 + 시스템 사운드 방어선)
+            const title = timerState.isFocusMode ? "공부 세션 종료" : "휴식 세션 종료";
+            const bodyMessage = timerState.isFocusMode ? "수고하셨습니다. 이제 휴식 시간입니다!" : "휴식이 끝났습니다. 다시 집중해볼까요?";
+            showNotification(title, bodyMessage);
+            
+            playBeep('end'); 
+            
+            // 무음 루프 오디오 정지
+            silentAudio.pause();
+
+            const wasFocus = timerState.isFocusMode;
+            
+            if (wasFocus && timerState.sessionStartTimeStamp) {
+                appData.todaySessions += 1;
+                const sub = document.getElementById('subjectSelect').value;
+                addTimeLogAuto(new Date(timerState.sessionStartTimeStamp), new Date(), sub);
+                
+                timerState.isFocusMode = false; 
+                timerState.duration = appData.customBreakMin * 60; 
+                document.getElementById('modeToggle').textContent = "🔄 공부 전환";
+            } else {
+                timerState.isFocusMode = true; 
+                timerState.duration = appData.customFocusMin * 60; 
+                document.getElementById('modeToggle').textContent = "🔄 휴식 전환";
+            }
+            
+            timerState.sessionStartTimeStamp = null;
+            timerState.timeLeft = timerState.duration; 
+            timerState.targetTime = null;
+            
+            updateTimerUI();
+            document.getElementById('startBtn').style.display = 'inline-block'; 
+            document.getElementById('pauseBtn').style.display = 'none';
+            saveRunningState(); 
+            
+            if (wasFocus) setTimeout(startTimer, 1000); 
+        }
+
+        function saveRunningState() {
+            localStorage.setItem('pomodoroRunningState', JSON.stringify({ 
+                isFocusMode: timerState.isFocusMode, 
+                duration: timerState.duration, 
+                timeLeft: timerState.timeLeft,
+                isPlaying: timerState.isPlaying,
+                targetTime: timerState.targetTime,
+                sessionStartTimeStamp: timerState.sessionStartTimeStamp,
+                activeSubject: currentSubject
+            }));
+        }
+
+        document.addEventListener("visibilitychange", () => { if (!document.hidden) restoreRunningState(); });
+
+        function restoreRunningState() {
+            const savedStr = localStorage.getItem('pomodoroRunningState');
+            if (!savedStr) return;
+            const saved = JSON.parse(savedStr);
+            
+            timerState.isFocusMode = saved.isFocusMode;
+            timerState.duration = saved.duration;
+            timerState.sessionStartTimeStamp = saved.sessionStartTimeStamp;
+            
+            if (saved.activeSubject) {
+                currentSubject = saved.activeSubject;
+                document.getElementById('subjectSelect').value = currentSubject;
+            }
+            
+            if (saved.isPlaying && saved.targetTime) {
+                const now = Date.now();
+                if (now >= saved.targetTime) {
+                    timerState.isPlaying = true; timerState.targetTime = saved.targetTime; timerState.timeLeft = saved.timeLeft;
+                    calculateTime(); 
+                } else {
+                    timerState.isPlaying = true; timerState.targetTime = saved.targetTime; timerState.timeLeft = Math.ceil((saved.targetTime - now) / 1000);
+                    document.getElementById('startBtn').style.display = 'none'; document.getElementById('pauseBtn').style.display = 'inline-block';
+                    timerWorker.postMessage('stop'); timerWorker.postMessage('start');
+                    // 복구 시에도 앱 낮잠 방지 오디오 실행
+                    silentAudio.play().catch(e => console.log(e));
+                }
+            } else {
+                timerState.isPlaying = false; timerState.timeLeft = saved.timeLeft; timerState.targetTime = null;
+                document.getElementById('startBtn').style.display = 'inline-block'; document.getElementById('pauseBtn').style.display = 'none';
+            }
+            document.getElementById('modeToggle').textContent = timerState.isFocusMode ? "🔄 휴식 전환" : "🔄 공부 전환";
+            updateTimerUI();
+        }
+
+        document.getElementById('modeToggle').addEventListener('click', () => {
+            if(timerState.isPlaying) pauseTimer(); 
+            timerState.isFocusMode = !timerState.isFocusMode; 
+            timerState.duration = (timerState.isFocusMode ? appData.customFocusMin : appData.customBreakMin) * 60; 
+            timerState.timeLeft = timerState.duration; 
+            document.getElementById('modeToggle').textContent = timerState.isFocusMode ? "🔄 휴식 전환" : "🔄 공부 전환"; 
+            updateTimerUI(); saveRunningState();
+        });
+
+        document.getElementById('startBtn').addEventListener('click', startTimer);
+        document.getElementById('pauseBtn').addEventListener('click', pauseTimer);
+        document.getElementById('resetBtn').addEventListener('click', resetTimer);
+
+        // =====================================
+        // 달력 렌더링 로직
+        // =====================================
+        let currentCalDate = new Date(); 
+        function renderCalendar() {
+            const grid = document.getElementById('calendarGrid'); grid.innerHTML = '';
+            const year = currentCalDate.getFullYear(), month = currentCalDate.getMonth();
+            document.getElementById('calendarTitle').textContent = `${year}년 ${month + 1}월`;
+            
+            ['일','월','화','수','목','금','토'].forEach(l => { 
+                const el = document.createElement('div'); el.className = 'day-label'; el.textContent = l; grid.appendChild(el); 
+            });
+            
+            const first = new Date(year, month, 1).getDay(), last = new Date(year, month + 1, 0).getDate();
+            for (let i = 0; i < first; i++) grid.appendChild(document.createElement('div'));
+            
+            for (let d = 1; d <= last; d++) {
+                const cell = document.createElement('div'); cell.className = 'cal-cell';
+                const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                
+                if (dateStr === selectedCalendarDate) cell.classList.add('selected');
+
+                const sec = (appData.history[dateStr] || 0);
+                const hrs = sec / 3600;
+                cell.style.backgroundColor = sec === 0 ? 'var(--cal-0)' : (hrs >= 10 ? 'var(--cal-10)' : (hrs >= 7 ? 'var(--cal-7)' : (hrs >= 5 ? 'var(--cal-5)' : (hrs >= 3 ? 'var(--cal-3)' : 'var(--cal-1)'))));
+                if (hrs >= 7) cell.style.color = '#ffffff';
+                
+                cell.innerHTML = `<div>${d}</div><div class="cal-time">${Math.floor(sec/3600)}h ${Math.floor((sec%3600)/60)}m</div>`;
+                
+                cell.onclick = () => { renderTimetable(dateStr); renderCalendar(); };
+                
+                grid.appendChild(cell);
+            }
+        }
+        
+        document.getElementById('prevMonth').addEventListener('click', () => { currentCalDate.setMonth(currentCalDate.getMonth() - 1); renderCalendar(); });
+        document.getElementById('nextMonth').addEventListener('click', () => { currentCalDate.setMonth(currentCalDate.getMonth() + 1); renderCalendar(); });
+
+        document.getElementById('applyTimeBtn').addEventListener('click', () => { appData.customFocusMin = parseInt(document.getElementById('focusInput').value); appData.customBreakMin = parseInt(document.getElementById('breakInput').value); saveDataAndSync(); resetTimer(); settingsModal.classList.remove('show'); document.body.style.overflow = ''; });
+        document.getElementById('saveDdayBtn').addEventListener('click', () => { appData.ddayText = document.getElementById('ddayTextInput').value; appData.ddayDate = document.getElementById('ddayDateInput').value; saveDataAndSync(); alert("저장되었습니다."); });
+        
+        document.getElementById('volumeSlider').addEventListener('input', e => { 
+            appData.volume = parseFloat(e.target.value); 
+            saveDataAndSync(); 
+            if (!isSoundOn && appData.volume > 0) { 
+                isSoundOn = true; 
+                document.getElementById('soundToggle').textContent = "🔊"; 
+            } 
+        });
+        
+        document.getElementById('soundToggle').addEventListener('click', () => { isSoundOn = !isSoundOn; document.getElementById('soundToggle').textContent = isSoundOn ? "🔊" : "🔇"; });
+
+        function renderReservations() {
+            const listEl = document.getElementById('resList'); listEl.innerHTML = '';
+            const dayNames = ["일요일", "월요일", "화요일", "수요일", "목요일", "금요일", "토요일"];
+            [...appData.reservations].sort((a,b)=> (a.day||7)-(b.day||7) || a.time.localeCompare(b.time)).forEach(r => {
+                const li = document.createElement('li'); li.className = 'res-item';
+                li.innerHTML = `<span><strong>[${dayNames[r.day]}]</strong> ${r.time} (${r.duration}분)</span><button class="res-del-btn" onclick="deleteRes(${r.id})">삭제</button>`;
+                listEl.appendChild(li);
+            });
+        }
+        const toggleResListBtn = document.getElementById('toggleResListBtn'); const resList = document.getElementById('resList'); let isResListVisible = true;
+        toggleResListBtn.addEventListener('click', () => { isResListVisible = !isResListVisible; resList.style.display = isResListVisible ? 'flex' : 'none'; toggleResListBtn.textContent = isResListVisible ? '목록 숨기기 ▴' : '목록 보기 ▾'; });
+        document.getElementById('addResBtn').addEventListener('click', () => {
+            const checked = document.querySelectorAll('#dayCheckboxGroup input:checked'); const time = document.getElementById('resTime').value; const dur = document.getElementById('resDuration').value;
+            if (!checked.length || !time) return alert('요일과 시간을 선택해주세요!');
+            checked.forEach((cb, i) => appData.reservations.push({id: Date.now()+i, day: parseInt(cb.value), time, duration: dur}));
+            saveDataAndSync(); renderReservations(); checked.forEach(cb => cb.checked = false);
+            if(!isResListVisible) { isResListVisible = true; resList.style.display = 'flex'; toggleResListBtn.textContent = '목록 숨기기 ▴'; }
+        });
+        window.deleteRes = id => { appData.reservations = appData.reservations.filter(r => r.id !== id); saveDataAndSync(); renderReservations(); };
+
+        checkDailyReset(); 
+        recalculateStatsFromLogs();
+        updateTimerUI(); 
+        updateDashboard(); 
+        renderReservations(); 
+        renderCalendar(); 
+        renderTimetable(getLogicalDate());
+        restoreRunningState(); 
+    </script>
+</body>
+</html>
