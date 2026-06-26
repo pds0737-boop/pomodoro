@@ -212,19 +212,11 @@
         .close-modal-btn:hover { background: var(--border-color); }
 
         .setting-grid { display: flex; flex-direction: column; gap: 25px; }
-        .setting-row { display: flex; flex-wrap: wrap; gap: 15px; align-items: flex-end; }
-        .setting-row .form-group { flex: 1 1 140px; min-width: 120px; }
-        .setting-row.time-row .form-group { flex: 1 1 120px; min-width: 100px; }
+        .setting-row { display: flex; flex-direction: column; gap: 15px; }
+        .setting-row.time-row { flex-direction: row; }
+        .setting-row.time-row .form-group { flex: 1; }
         .form-group { display: flex; flex-direction: column; gap: 8px; }
         .form-group label { font-size: 13px; font-weight: 500; color: var(--text-sub); transition: color 0.3s; }
-
-        /* 아이패드/모바일 반응형 */
-        @media (max-width: 680px) {
-            .setting-row { flex-direction: column; }
-            .setting-row .form-group { flex: 1 1 auto; width: 100%; min-width: unset; }
-            .setting-row.time-row { flex-direction: row; }
-            .setting-row.time-row .form-group { flex: 1 1 100px; }
-        }
         
         .form-group input, .form-group select { width: 100%; height: 46px; padding: 0 15px; border: 1px solid var(--border-color); border-radius: 12px; font-size: 14px; background-color: var(--bg-color); color: var(--text-main); outline: none; transition: all 0.2s ease; box-sizing: border-box; }
         .form-group input:focus, .form-group select:focus { background-color: var(--card-bg); border-color: var(--green-accent); box-shadow: 0 0 0 3px var(--outline-color); }
